@@ -15,7 +15,7 @@ export function buttonClass(variant: Variant = 'primary', extra = '') {
 
 export function inputClass(hasError = false) {
   return [
-    'w-full rounded-xl border bg-paper/60 px-4 text-base text-ink placeholder:text-ink-faint',
+    'w-full min-w-0 rounded-xl border bg-paper/60 px-4 text-base text-ink placeholder:text-ink-faint',
     'transition outline-none focus:bg-card focus:ring-4',
     hasError ? 'border-danger-600 focus:ring-danger-50' : 'border-line focus:border-teal-600 focus:ring-teal-600/15',
   ].join(' ')

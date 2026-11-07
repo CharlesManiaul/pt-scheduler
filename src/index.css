@@ -47,12 +47,18 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    /* keep native pickers (date, select) light even when the phone is in dark mode */
+    color-scheme: light;
+    /* no double-tap zoom delay on buttons */
+    touch-action: manipulation;
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
   }
 
-  /* subtle paper grain, no image request */
+  /* subtle paper grain, desktop only: a full-screen SVG filter makes
+     iPhone Safari repaint on every scroll, which feels laggy */
+  @media (hover: hover) and (pointer: fine) {
   body::before {
     content: "";
     position: fixed;
@@ -63,10 +69,48 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .19 0 0 0 0 .18 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
+  }
+
   #root {
     position: relative;
     z-index: 1;
   }
+
+  /* iOS Safari: native date/time fields ignore height, center the text and
+     can overflow a grid column. Make them behave like normal text inputs. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    min-height: 3rem;
+    line-height: 3rem;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    margin: 0;
+  }
+
+  /* iOS Safari: replace the glossy native select with our own chevron */
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a5f5c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1.1rem;
+    padding-right: 2.75rem;
+  }
+
+  /* iOS Safari adds its own rounded/inset look to text fields */
+  input[type="text"], input[type="email"], input[type="password"], input[type="tel"],
+  input[type="number"], input[type="search"], textarea {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 
   :focus-visible {
     outline: 2px solid var(--color-clay-500);

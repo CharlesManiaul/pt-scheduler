@@ -62,7 +62,7 @@ export function LoginPage() {
   return (
     <main className="mx-auto grid min-h-dvh max-w-6xl lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16 lg:px-10">
       {/* Left / top: the story */}
-      <section className="px-6 pt-10 text-teal-700 lg:px-0 lg:pt-0">
+      <section className="px-6 pt-[max(2.5rem,env(safe-area-inset-top))] text-teal-700 lg:px-0 lg:pt-0">
         <p className="animate-rise font-sans text-xs font-semibold uppercase tracking-[0.22em] text-clay-600">
           PT Scheduler
         </p>

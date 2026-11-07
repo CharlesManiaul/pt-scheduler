@@ -10,6 +10,8 @@ import { PatientFormPage } from './pages/patients/PatientFormPage'
 import { PatientsPage } from './pages/patients/PatientsPage'
 import { SetupCheckPage } from './pages/SetupCheckPage'
 import { TodayPage } from './pages/TodayPage'
+import { PlanDetailPage } from './pages/plans/PlanDetailPage'
+import { PlanFormPage } from './pages/plans/PlanFormPage'
 
 // Hash URLs (#/patients) so GitHub Pages never returns 404 on refresh.
 const router = createHashRouter([
@@ -31,6 +33,8 @@ const router = createHashRouter([
           { path: 'patients/new', element: <PatientFormPage /> },
           { path: 'patients/:id', element: <PatientDetailPage /> },
           { path: 'patients/:id/edit', element: <PatientFormPage /> },
+          { path: 'patients/:id/plans/new', element: <PlanFormPage /> },
+          { path: 'plans/:id', element: <PlanDetailPage /> },
           {
             path: 'payments',
             element: <Placeholder title="Payments" step="the payments step"

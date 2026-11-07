@@ -459,7 +459,7 @@ begin
     return private.fill_plan_sessions(p_plan_id, private.local_today(v_uid));
 end $$;
 
--- 6.4 Put a plan on hold (cancels future visits) or resume it (regenerates them)
+-- 6.4 Put a plan on hold (removes future visits) or resume it (regenerates them)
 create or replace function public.set_care_plan_on_hold(p_plan_id uuid, p_on_hold boolean)
 returns jsonb
 language plpgsql security definer set search_path = '' as $$
@@ -470,9 +470,9 @@ begin
          where id = p_plan_id and owner_id = v_uid and status = 'active';
         if not found then raise exception 'Active plan not found' using errcode = 'P0002'; end if;
 
-        update public.sessions
-           set status = 'cancelled', cancel_reason = 'Plan on hold'
-         where care_plan_id = p_plan_id and status = 'scheduled' and starts_at > now();
+        delete from public.sessions
+         where care_plan_id = p_plan_id and owner_id = v_uid
+           and status = 'scheduled' and starts_at > now();
 
         perform private.renumber_plan_sessions(p_plan_id);
         return jsonb_build_object('created', '[]'::jsonb, 'skipped_dates', '[]'::jsonb);

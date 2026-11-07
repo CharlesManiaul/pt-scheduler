@@ -83,7 +83,14 @@ export async function updatePatient(id: string, input: PatientInput): Promise<vo
   if (error) throw error
 }
 
-export async function setPatientStatus(id: string, status: PatientStatus): Promise<void> {
-  const { error } = await supabase.from('patients').update({ status }).eq('id', id)
+/** Discharge also cancels open plans and future visits; returns how many visits were cancelled. */
+export async function dischargePatient(id: string): Promise<number> {
+  const { data, error } = await supabase.rpc('discharge_patient', { p_patient_id: id })
+  if (error) throw error
+  return data as number
+}
+
+export async function reactivatePatient(id: string): Promise<void> {
+  const { error } = await supabase.rpc('reactivate_patient', { p_patient_id: id })
   if (error) throw error
 }
