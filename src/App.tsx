@@ -5,6 +5,9 @@ import { RequireAuth } from './auth/RequireAuth'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { Placeholder } from './pages/Placeholder'
+import { PatientDetailPage } from './pages/patients/PatientDetailPage'
+import { PatientFormPage } from './pages/patients/PatientFormPage'
+import { PatientsPage } from './pages/patients/PatientsPage'
 import { SetupCheckPage } from './pages/SetupCheckPage'
 import { TodayPage } from './pages/TodayPage'
 
@@ -24,11 +27,10 @@ const router = createHashRouter([
             element: <Placeholder title="Calendar" step="the calendar step"
               description="Day and week views of every visit, with drag-to-reschedule." />,
           },
-          {
-            path: 'patients',
-            element: <Placeholder title="Patients" step="Step 6"
-              description="Patient list, profiles, addresses with a Google Maps link, and plans of care." />,
-          },
+          { path: 'patients', element: <PatientsPage /> },
+          { path: 'patients/new', element: <PatientFormPage /> },
+          { path: 'patients/:id', element: <PatientDetailPage /> },
+          { path: 'patients/:id/edit', element: <PatientFormPage /> },
           {
             path: 'payments',
             element: <Placeholder title="Payments" step="the payments step"
