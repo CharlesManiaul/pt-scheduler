@@ -125,3 +125,70 @@
     }
   }
 }
+
+/* ------------------------------------------------------------------
+   Calendar (FullCalendar) — unlayered so it beats FullCalendar's own
+   injected styles; scoped under .pt-cal.
+   ------------------------------------------------------------------ */
+.pt-cal .fc {
+  --fc-border-color: var(--color-line);
+  --fc-page-bg-color: var(--color-card);
+  --fc-neutral-bg-color: var(--color-paper);
+  --fc-list-event-hover-bg-color: var(--color-paper);
+  --fc-today-bg-color: color-mix(in srgb, var(--color-clay-50) 70%, transparent);
+  --fc-now-indicator-color: var(--color-clay-500);
+  --fc-event-border-color: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--color-ink);
+}
+.pt-cal .fc-theme-standard .fc-scrollgrid { border: 0; }
+.pt-cal .fc .fc-col-header-cell { background: var(--color-paper); }
+.pt-cal .fc .fc-col-header-cell-cushion { padding: 0.6rem 0.25rem; font-weight: 600; color: var(--color-ink-soft); text-decoration: none; }
+.pt-cal .fc .fc-daygrid-day-number { color: var(--color-ink-soft); text-decoration: none; padding: 0.4rem 0.5rem; }
+.pt-cal .fc .fc-timegrid-slot { height: 2.4rem; }
+.pt-cal .fc .fc-timegrid-slot-label-cushion { font-size: 0.72rem; color: var(--color-ink-faint); text-transform: lowercase; }
+.pt-cal .fc .fc-timegrid-slot-minor { border-top-style: dotted; }
+.pt-cal .fc .fc-day-today .fc-col-header-cell-cushion { color: var(--color-clay-600); }
+
+/* events */
+.pt-cal .fc-event { border-radius: 0.6rem; border-width: 0 0 0 3px; box-shadow: 0 1px 2px rgb(18 48 46 / 0.08); cursor: pointer; }
+.pt-cal .fc-timegrid-event .fc-event-main, .pt-cal .fc-daygrid-event { padding: 0.2rem 0.35rem; }
+.pt-cal .ev-body { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; overflow: hidden; }
+.pt-cal .ev-time { font-size: 0.68rem; opacity: 0.85; }
+.pt-cal .ev-title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-cal .ev-meta { font-size: 0.68rem; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-cal .fc-daygrid-event .ev-body { flex-direction: row; gap: 0.35rem; align-items: baseline; }
+.pt-cal .fc-daygrid-event .ev-meta { display: none; }
+.pt-cal .fc-list-event .ev-body { flex-direction: row; gap: 0.5rem; align-items: baseline; }
+.pt-cal .fc-list-event .ev-time { display: none; }
+
+.pt-cal .ev-scheduled { background: var(--color-teal-700); border-color: var(--color-teal-800); color: #fff; }
+.pt-cal .ev-completed { background: color-mix(in srgb, var(--color-moss-600) 16%, var(--color-card)); border-color: var(--color-moss-600); color: var(--color-ink); }
+.pt-cal .ev-no_show { background: var(--color-clay-50); border-color: var(--color-clay-500); color: var(--color-clay-600); }
+.pt-cal .ev-cancelled { background: repeating-linear-gradient(135deg, var(--color-paper), var(--color-paper) 6px, var(--color-paper-deep) 6px, var(--color-paper-deep) 12px); border-color: var(--color-ink-faint); color: var(--color-ink-faint); text-decoration: line-through; }
+.pt-cal .ev-overdue { background: #fef3c7; border-color: #d97706; color: #78350f; }
+.pt-cal .ev-tight { box-shadow: 0 0 0 2px var(--color-clay-500); }
+.pt-cal .ev-warn { color: #fbbf24; }
+.pt-cal .ev-overdue .ev-warn, .pt-cal .ev-completed .ev-warn, .pt-cal .ev-no_show .ev-warn { color: var(--color-clay-600); }
+.pt-cal .fc .fc-event-main { color: inherit; }
+.pt-cal .fc-list-event td { background: transparent; }
+.pt-cal .fc-list-event:hover td { background: var(--color-paper); }
+.pt-cal .fc-list-event .fc-list-event-dot { border-color: var(--color-teal-700); }
+.pt-cal .fc-list-event.ev-completed .fc-list-event-dot { border-color: var(--color-moss-600); }
+.pt-cal .fc-list-event.ev-no_show .fc-list-event-dot { border-color: var(--color-clay-500); }
+.pt-cal .fc-list-event.ev-overdue .fc-list-event-dot { border-color: #d97706; }
+.pt-cal .fc-list-event.ev-cancelled .fc-list-event-dot { border-color: var(--color-ink-faint); }
+/* list view keeps a neutral row; the colored dot carries the status */
+.pt-cal .fc-list-event.ev-scheduled, .pt-cal .fc-list-event.ev-completed, .pt-cal .fc-list-event.ev-no_show,
+.pt-cal .fc-list-event.ev-overdue, .pt-cal .fc-list-event.ev-cancelled { background: transparent; color: var(--color-ink); box-shadow: none; }
+.pt-cal .fc .fc-list-day-cushion { background: var(--color-paper); font-weight: 600; }
+.pt-cal .fc .fc-list-empty { background: var(--color-card); color: var(--color-ink-faint); }
+
+/* legend dots */
+.pt-cal .ev-dot { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 9999px; border-left-width: 3px; border-style: solid; }
+
+@media (max-width: 767px) {
+  .pt-cal .fc { font-size: 0.8rem; }
+  .pt-cal .fc .fc-timegrid-slot { height: 2.6rem; }
+}

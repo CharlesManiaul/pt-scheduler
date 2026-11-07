@@ -2,6 +2,7 @@ import { createHashRouter, Link } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { RequireAuth } from './auth/RequireAuth'
+import { SplashScreen } from './components/SplashScreen'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { Placeholder } from './pages/Placeholder'
@@ -25,9 +26,10 @@ const router = createHashRouter([
         children: [
           { index: true, element: <TodayPage /> },
           {
+            // loaded on first visit: keeps the calendar library out of the initial download
             path: 'calendar',
-            element: <Placeholder title="Calendar" step="the calendar step"
-              description="Day and week views of every visit, with drag-to-reschedule." />,
+            lazy: async () => ({ Component: (await import('./pages/CalendarPage')).CalendarPage }),
+            HydrateFallback: SplashScreen,
           },
           { path: 'patients', element: <PatientsPage /> },
           { path: 'patients/new', element: <PatientFormPage /> },

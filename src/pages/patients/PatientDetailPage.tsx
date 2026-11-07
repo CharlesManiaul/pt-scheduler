@@ -1,18 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
+import { AddVisitDialog } from '../../components/AddVisitDialog'
 import { Icon } from '../../components/Icon'
-import { PlanChip, PlanProgress, SessionChip, SessionDialog, SlotIssues } from '../../components/scheduling'
-import { buttonClass, inputClass } from '../../components/styles'
-import { Button, ButtonLink, ConfirmDialog, ErrorBanner, Field, Modal, Notice, Spinner, StatusBadge } from '../../components/ui'
+import { PlanChip, PlanProgress, SessionChip, SessionDialog } from '../../components/scheduling'
+import { buttonClass } from '../../components/styles'
+import { ButtonLink, ConfirmDialog, ErrorBanner, Notice, Spinner, StatusBadge } from '../../components/ui'
 import { toFriendlyError } from '../../lib/errors'
 import {
-  ageFrom, formatClock, formatDate, formatDays, formatPeso, formatVisit, initials, manilaIso, mapsUrl, telHref, todayIso,
+  ageFrom, formatClock, formatDate, formatDays, formatPeso, formatVisit, initials, mapsUrl, telHref,
 } from '../../lib/format'
 import { dischargePatient, getPatient, getPatientBalance, reactivatePatient } from '../../lib/patients'
 import { listPlansForPatient } from '../../lib/plans'
-import { createSingleSession, listUpcomingForPatient } from '../../lib/sessions'
+import { listUpcomingForPatient } from '../../lib/sessions'
 import type { CarePlan, Patient, PatientBalance, Session } from '../../lib/types'
-import { useSlotCheck } from '../../lib/useSlotCheck'
 
 export function PatientDetailPage() {
   const { id } = useParams()
@@ -306,55 +306,3 @@ function Row({ label, value, multiline, href }: { label: string; value: string |
   )
 }
 
-/** One-off visit (evaluation, extra session) outside any plan. */
-function AddVisitDialog({ patient, onClose, onDone }: {
-  patient: Patient
-  onClose: () => void
-  onDone: (m: { text: string }) => void
-}) {
-  const [date, setDate] = useState(todayIso())
-  const [time, setTime] = useState('09:00')
-  const [minutes, setMinutes] = useState('60')
-  const [fee, setFee] = useState(patient.default_fee ? String(patient.default_fee) : '')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const mins = Number(minutes)
-  const feeValue = fee.trim() === '' ? 0 : Number(fee)
-  const valid = Boolean(date && time) && Number.isInteger(mins) && mins >= 15 && mins <= 240 && Number.isFinite(feeValue) && feeValue >= 0
-  const startsAt = valid ? manilaIso(date, time) : null
-  const slot = useSlotCheck(startsAt, mins)
-
-  async function save() {
-    if (!startsAt) return
-    setBusy(true)
-    setError(null)
-    try {
-      await createSingleSession({ patientId: patient.id, startsAt, durationMinutes: mins, fee: feeValue })
-      onDone({ text: `Visit added on ${formatVisit(startsAt)}.` })
-    } catch (e) {
-      setError(toFriendlyError(e))
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Modal open onClose={onClose} title="One-off visit">
-      <p className="text-sm text-ink-soft">For an evaluation or an extra visit outside the plan.</p>
-      <div className="mt-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Date" htmlFor="ov_date"><input id="ov_date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass()} /></Field>
-          <Field label="Time" htmlFor="ov_time"><input id="ov_time" type="time" step={300} value={time} onChange={(e) => setTime(e.target.value)} className={inputClass()} /></Field>
-          <Field label="Minutes" htmlFor="ov_min"><input id="ov_min" type="number" inputMode="numeric" min={15} max={240} step={5} value={minutes} onChange={(e) => setMinutes(e.target.value)} className={`${inputClass()} h-12`} /></Field>
-          <Field label="Fee (₱)" htmlFor="ov_fee"><input id="ov_fee" type="number" inputMode="decimal" min={0} step="0.01" value={fee} onChange={(e) => setFee(e.target.value)} className={`${inputClass()} h-12`} /></Field>
-        </div>
-        {valid && <SlotIssues {...slot} />}
-      </div>
-      {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
-      <div className="mt-5 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button loading={busy} disabled={!valid || slot.hasOverlap || slot.checking} onClick={save}>Add visit</Button>
-      </div>
-    </Modal>
-  )
-}

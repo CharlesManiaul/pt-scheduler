@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatPeso, formatTime, formatVisit, manilaIso, splitManila, WEEKDAYS } from '../lib/format'
 import { toFriendlyError } from '../lib/errors'
 import { describeFill } from '../lib/scheduleText'
@@ -110,15 +110,18 @@ type Mode = 'menu' | 'reschedule' | 'cancel' | 'noshow'
  * Everything you can do to one visit: done, no-show, move, cancel.
  * onDone(message) lets the page reload and show what happened.
  */
-export function SessionDialog({ session, patientName, onClose, onDone }: {
+export function SessionDialog({ session, patientName, footer, onClose, onDone }: {
   session: Session | null
   patientName?: string
+  /** extra links under the actions (e.g. Open patient / Directions from the calendar) */
+  footer?: ReactNode
   onClose: () => void
   onDone: (message: { text: string; extra?: string | null }) => void
 }) {
   return (
     <Modal open={Boolean(session)} onClose={onClose} title={patientName ?? 'Visit'}>
       {session && <SessionActions key={session.id} session={session} onDone={onDone} />}
+      {session && footer && <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">{footer}</div>}
     </Modal>
   )
 }
