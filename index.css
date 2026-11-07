@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   "Field notebook" theme: warm paper, deep teal ink, terracotta action.
+   Built for a phone in sunlight: high contrast, large touch targets.
+   ------------------------------------------------------------------ */
+@theme {
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #f5f1e8;
+  --color-paper-deep: #ebe4d6;
+  --color-card: #fffdf8;
+  --color-line: #ddd4c3;
+
+  --color-ink: #12302e;
+  --color-ink-soft: #4a5f5c;
+  --color-ink-faint: #8a9794;
+
+  --color-teal-600: #1d6b66;
+  --color-teal-700: #13524e;
+  --color-teal-800: #0d3b38;
+
+  --color-clay-500: #d0613c;
+  --color-clay-600: #b84f2c;
+  --color-clay-50: #fbeee8;
+
+  --color-moss-600: #4f7a3a;
+  --color-danger-600: #b3261e;
+  --color-danger-50: #fcecea;
+
+  --shadow-card: 0 1px 0 rgb(18 48 46 / 0.04), 0 8px 24px -12px rgb(18 48 46 / 0.18);
+
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  --animate-draw: draw 2.4s 0.3s ease-in-out both;
+  @keyframes draw {
+    from { stroke-dashoffset: 600; }
+    to   { stroke-dashoffset: 0; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  /* subtle paper grain, no image request */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .19 0 0 0 0 .18 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-clay-500);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
