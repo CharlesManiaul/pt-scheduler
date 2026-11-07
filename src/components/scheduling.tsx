@@ -6,6 +6,7 @@ import { cancelSession, completeSession, markNoShow, rescheduleSession } from '.
 import type { PlanStatus, Session, SessionStatus, SlotIssue } from '../lib/types'
 import { useSlotCheck } from '../lib/useSlotCheck'
 import { Icon } from './Icon'
+import { NotesForm } from './NotesForm'
 import { inputClass } from './styles'
 import { Button, ErrorBanner, Field, Modal } from './ui'
 
@@ -104,7 +105,7 @@ export function SlotIssues({ checking, failed, issues }: { checking: boolean; fa
 
 // ---------------------------------------------------------------- visit actions
 
-type Mode = 'menu' | 'reschedule' | 'cancel' | 'noshow'
+type Mode = 'menu' | 'reschedule' | 'cancel' | 'noshow' | 'notes' | 'notes-after-done'
 
 /**
  * Everything you can do to one visit: done, no-show, move, cancel.
@@ -119,7 +120,7 @@ export function SessionDialog({ session, patientName, footer, onClose, onDone }:
   onDone: (message: { text: string; extra?: string | null }) => void
 }) {
   return (
-    <Modal open={Boolean(session)} onClose={onClose} title={patientName ?? 'Visit'}>
+    <Modal open={Boolean(session)} onClose={onClose} title={patientName ?? 'Visit'} wide>
       {session && <SessionActions key={session.id} session={session} onDone={onDone} />}
       {session && footer && <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">{footer}</div>}
     </Modal>
@@ -150,7 +151,7 @@ function SessionActions({ session: s, onDone }: { session: Session; onDone: (m: 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold">{formatVisit(s.starts_at)}</span>
         <span className="text-ink-faint">· {duration} min</span>
-        <SessionChip status={s.status} />
+        <SessionChip status={mode === 'notes-after-done' ? 'completed' : s.status} />
       </div>
       {s.session_number && <p className="mt-1 text-xs text-ink-faint">Session {s.session_number} of the plan · {formatPeso(s.fee)}</p>}
       {s.cancel_reason && <p className="mt-1 text-xs text-ink-soft">Reason: {s.cancel_reason}</p>}
@@ -160,7 +161,12 @@ function SessionActions({ session: s, onDone }: { session: Session; onDone: (m: 
           <div className="grid gap-2">
             {s.status === 'scheduled' && started && (
               <>
-                <Button loading={busy} onClick={() => run(async () => { await completeSession(s.id); return { text: 'Visit marked as done.' } })}>
+                <Button loading={busy} onClick={async () => {
+                  // complete first, then go straight to notes (skippable)
+                  setBusy(true); setError(null)
+                  try { await completeSession(s.id); setMode('notes-after-done') } catch (e) { setError(toFriendlyError(e)) }
+                  setBusy(false)
+                }}>
                   <Icon name="check" className="h-4 w-4" /> Mark as done
                 </Button>
                 <Button variant="secondary" onClick={() => setMode('noshow')}>Patient was a no-show</Button>
@@ -173,7 +179,10 @@ function SessionActions({ session: s, onDone }: { session: Session; onDone: (m: 
               </>
             )}
             {s.status === 'completed' && (
-              <Button variant="secondary" onClick={() => setMode('noshow')}>Change to no-show</Button>
+              <>
+                <Button onClick={() => setMode('notes')}><Icon name="edit" className="h-4 w-4" /> Notes & pain scale</Button>
+                <Button variant="secondary" onClick={() => setMode('noshow')}>Change to no-show</Button>
+              </>
             )}
             {s.status === 'no_show' && (
               <Button loading={busy} onClick={() => run(async () => { await completeSession(s.id); return { text: 'Visit changed to done.' } })}>
@@ -185,6 +194,22 @@ function SessionActions({ session: s, onDone }: { session: Session; onDone: (m: 
               <p className="text-center text-xs text-ink-faint">“Done” and “No-show” appear once the visit time has started.</p>
             )}
           </div>
+        )}
+
+        {mode === 'notes-after-done' && (
+          <>
+            <p className="mb-4 flex items-center gap-2 rounded-xl bg-moss-600/10 px-3.5 py-2.5 text-sm font-medium text-moss-600">
+              <Icon name="check" className="h-4 w-4" /> Marked as done. Add notes now, or skip and add them later.
+            </p>
+            <NotesForm sessionId={s.id} patientId={s.patient_id} startsAt={s.starts_at} cancelLabel="Skip"
+                       onSaved={() => onDone({ text: 'Visit marked as done; notes saved.' })}
+                       onCancel={() => onDone({ text: 'Visit marked as done.' })} />
+          </>
+        )}
+
+        {mode === 'notes' && (
+          <NotesForm sessionId={s.id} patientId={s.patient_id} startsAt={s.starts_at}
+                     onSaved={() => onDone({ text: 'Notes saved.' })} onCancel={() => setMode('menu')} />
         )}
 
         {mode === 'noshow' && <NoShowForm session={s} busy={busy} onBack={() => setMode('menu')}

@@ -8,6 +8,7 @@ import { toFriendlyError } from '../../lib/errors'
 import { formatClock, formatDate, formatDays, formatPeso, formatVisit } from '../../lib/format'
 import { cancelPlan, extendPlan, getPlan, setPlanOnHold, updatePlanDetails, updatePlanSchedule } from '../../lib/plans'
 import { describeFill } from '../../lib/scheduleText'
+import { sessionsWithNotes } from '../../lib/notes'
 import { listPlanSessions } from '../../lib/sessions'
 import type { CarePlan, Session } from '../../lib/types'
 
@@ -28,6 +29,7 @@ export function PlanDetailPage() {
   const [dialog, setDialog] = useState<Dialog>(null)
   const [showCancelled, setShowCancelled] = useState(false)
   const [loadedAt, setLoadedAt] = useState(0)   // time of the last load; splits past/upcoming
+  const [noted, setNoted] = useState<Set<string>>(new Set())
 
   // the success message came in via navigation state; clear it so a refresh doesn't repeat it
   useEffect(() => {
@@ -38,7 +40,10 @@ export function PlanDetailPage() {
     if (!id) return
     let cancelled = false
     Promise.all([getPlan(id), listPlanSessions(id)])
-      .then(([p, s]) => { if (!cancelled) { setPlan(p); setSessions(s); setError(null); setLoadedAt(Date.now()) } })
+      .then(async ([p, s]) => {
+        const withNotes = await sessionsWithNotes(s.filter((x) => x.status === 'completed').map((x) => x.id))
+        if (!cancelled) { setPlan(p); setSessions(s); setNoted(withNotes); setError(null); setLoadedAt(Date.now()) }
+      })
       .catch((e) => !cancelled && setError(toFriendlyError(e)))
     return () => { cancelled = true }
   }, [id, reloadKey])
@@ -112,7 +117,7 @@ export function PlanDetailPage() {
           <SessionGroup title="Needs update" hint="These visits have passed. Mark them done or no-show." sessions={overdue} overdue onSelect={setSelected} />
         )}
         <SessionGroup title="Upcoming" sessions={upcoming} onSelect={setSelected} empty="No upcoming visits." />
-        {finished.length > 0 && <SessionGroup title="Completed" sessions={finished} onSelect={setSelected} />}
+        {finished.length > 0 && <SessionGroup title="Completed" sessions={finished} onSelect={setSelected} noted={noted} />}
         {cancelledList.length > 0 && (
           <div>
             <button onClick={() => setShowCancelled((v) => !v)} className="text-sm font-medium text-ink-soft underline underline-offset-2">
@@ -134,8 +139,8 @@ export function PlanDetailPage() {
   )
 }
 
-function SessionGroup({ title, hint, sessions, onSelect, overdue, empty }: {
-  title: string; hint?: string; sessions: Session[]; onSelect: (s: Session) => void; overdue?: boolean; empty?: string
+function SessionGroup({ title, hint, sessions, onSelect, overdue, empty, noted }: {
+  title: string; hint?: string; sessions: Session[]; onSelect: (s: Session) => void; overdue?: boolean; empty?: string; noted?: Set<string>
 }) {
   return (
     <div>
@@ -153,6 +158,11 @@ function SessionGroup({ title, hint, sessions, onSelect, overdue, empty }: {
                 <span className="block text-sm font-semibold">{formatVisit(s.starts_at)}</span>
                 {s.is_manually_moved && s.status === 'scheduled' && <span className="block text-xs text-ink-faint">Moved</span>}
                 {s.cancel_reason && <span className="block truncate text-xs text-ink-faint">{s.cancel_reason}</span>}
+                {noted && s.status === 'completed' && (
+                  noted.has(s.id)
+                    ? <span className="block text-xs text-moss-600">Notes written</span>
+                    : <span className="block text-xs text-amber-800">No notes yet</span>
+                )}
               </span>
               <SessionChip status={s.status} overdue={overdue} />
             </button>

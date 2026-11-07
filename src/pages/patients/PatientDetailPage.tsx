@@ -1,18 +1,25 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { AddVisitDialog } from '../../components/AddVisitDialog'
+import { NotesForm } from '../../components/NotesForm'
+import { PaymentDialog } from '../../components/PaymentDialog'
 import { Icon } from '../../components/Icon'
 import { PlanChip, PlanProgress, SessionChip, SessionDialog } from '../../components/scheduling'
 import { buttonClass } from '../../components/styles'
-import { ButtonLink, ConfirmDialog, ErrorBanner, Notice, Spinner, StatusBadge } from '../../components/ui'
+import { ButtonLink, ConfirmDialog, ErrorBanner, Modal, Notice, Spinner, StatusBadge } from '../../components/ui'
 import { toFriendlyError } from '../../lib/errors'
 import {
   ageFrom, formatClock, formatDate, formatDays, formatPeso, formatVisit, initials, mapsUrl, telHref,
 } from '../../lib/format'
 import { dischargePatient, getPatient, getPatientBalance, reactivatePatient } from '../../lib/patients'
+import { listPatientNotes, type NoteSummary } from '../../lib/notes'
+import { deletePayment, listPaymentsForPatient, methodLabel, type PaymentWithPatient } from '../../lib/payments'
 import { listPlansForPatient } from '../../lib/plans'
 import { listUpcomingForPatient } from '../../lib/sessions'
 import type { CarePlan, Patient, PatientBalance, Session } from '../../lib/types'
+
+// the chart library is only downloaded when a patient page is opened
+const PainChart = lazy(() => import('../../components/PainChart').then((m) => ({ default: m.PainChart })))
 
 export function PatientDetailPage() {
   const { id } = useParams()
@@ -28,19 +35,28 @@ export function PatientDetailPage() {
   const [addVisitOpen, setAddVisitOpen] = useState(false)
   const [message, setMessage] = useState<{ text: string; extra?: string | null } | null>(null)
   const [loadedAt, setLoadedAt] = useState(0)
+  const [notes, setNotes] = useState<NoteSummary[]>([])
+  const [payments, setPayments] = useState<PaymentWithPatient[]>([])
+  const [openNote, setOpenNote] = useState<NoteSummary | null>(null)
+  const [paymentDialog, setPaymentDialog] = useState<'new' | PaymentWithPatient | null>(null)
+  const [deleting, setDeleting] = useState<PaymentWithPatient | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    Promise.all([getPatient(id), getPatientBalance(id), listPlansForPatient(id), listUpcomingForPatient(id)])
-      .then(([p, b, pl, up]) => {
+    Promise.all([getPatient(id), getPatientBalance(id), listPlansForPatient(id), listUpcomingForPatient(id),
+                 listPatientNotes(id), listPaymentsForPatient(id, 5)])
+      .then(([p, b, pl, up, nt, pay]) => {
         if (cancelled) return
         setPatient(p)
         setBalance(b)
         setPlans(pl)
         setUpcoming(up)
+        setNotes(nt)
+        setPayments(pay)
         setLoadedAt(Date.now())
       })
       .catch((e) => !cancelled && setError(toFriendlyError(e)))
@@ -68,9 +84,25 @@ export function PatientDetailPage() {
     }
   }
 
+  async function confirmDeletePayment() {
+    if (!deleting) return
+    setDeleteBusy(true)
+    try {
+      await deletePayment(deleting.id)
+      visitChanged({ text: `Payment of ${formatPeso(deleting.amount)} deleted.` })
+    } catch (e) {
+      setStatusError(toFriendlyError(e))
+    } finally {
+      setDeleteBusy(false)
+      setDeleting(null)
+    }
+  }
+
   const visitChanged = (m: { text: string; extra?: string | null }) => {
     setSelected(null)
     setAddVisitOpen(false)
+    setOpenNote(null)
+    setPaymentDialog(null)
     setMessage(m)
     setReloadKey((k) => k + 1)
   }
@@ -212,10 +244,39 @@ export function PatientDetailPage() {
               </ul>
             )}
           </Card>
+          <Card title="Progress" delay={300}>
+            <Suspense fallback={<div className="h-56 animate-pulse rounded-xl bg-paper" />}>
+              <PainChart notes={notes} />
+            </Suspense>
+            {notes.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">Visit notes</p>
+                <ul className="-mx-2">
+                  {[...notes].reverse().slice(0, 6).map((n) => (
+                    <li key={n.session_id}>
+                      <button onClick={() => setOpenNote(n)} className="flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper">
+                        <span className="w-24 shrink-0 font-medium">{formatVisit(n.starts_at).split(' · ')[0]}</span>
+                        <span className="min-w-0 flex-1">
+                          {(n.pain_before !== null || n.pain_after !== null) && (
+                            <span className="mr-2 rounded-full bg-paper-deep px-2 py-0.5 text-xs font-semibold">pain {n.pain_before ?? '–'} → {n.pain_after ?? '–'}</span>
+                          )}
+                          <span className="text-ink-soft">{n.assessment || n.subjective || n.plan || 'Notes'}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
         </div>
 
         <div className="space-y-4">
-          <Card title="Billing" delay={160}>
+          <Card title="Billing" delay={160} action={
+            <button onClick={() => setPaymentDialog('new')} className="inline-flex items-center gap-1 text-sm font-semibold text-clay-600 hover:underline">
+              <Icon name="plus" className="h-4 w-4" /> Payment
+            </button>
+          }>
             <Row label="Default fee" value={formatPeso(p.default_fee)} />
             {balance && (
               <>
@@ -228,6 +289,25 @@ export function PatientDetailPage() {
                   </span>
                 </div>
               </>
+            )}
+            {payments.length > 0 && (
+              <div className="mt-3 border-t border-line pt-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">Recent payments</p>
+                <ul className="-mx-2">
+                  {payments.map((pay) => (
+                    <li key={pay.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-paper">
+                      <button onClick={() => setPaymentDialog(pay)} className="flex flex-1 items-baseline justify-between gap-2 text-left">
+                        <span><span className="font-medium">{formatDate(pay.paid_on)}</span> <span className="text-xs text-ink-faint">{methodLabel(pay.method)}</span></span>
+                        <span className="font-semibold text-moss-600">{formatPeso(pay.amount)}</span>
+                      </button>
+                      <button onClick={() => setDeleting(pay)} aria-label={`Delete payment of ${formatPeso(pay.amount)}`}
+                              className="grid h-7 w-7 place-items-center rounded-full text-ink-faint hover:bg-danger-50 hover:text-danger-600">
+                        <Icon name="close" className="h-3.5 w-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </Card>
           <Card title="Contact" delay={200}>
@@ -270,6 +350,34 @@ export function PatientDetailPage() {
 
       <SessionDialog session={selected} patientName={p.full_name} onClose={() => setSelected(null)} onDone={visitChanged} />
       {addVisitOpen && <AddVisitDialog patient={p} onClose={() => setAddVisitOpen(false)} onDone={visitChanged} />}
+
+      <Modal open={Boolean(openNote)} onClose={() => setOpenNote(null)} title={openNote ? `Notes · ${formatVisit(openNote.starts_at)}` : 'Notes'} wide>
+        {openNote && (
+          <NotesForm key={openNote.session_id} sessionId={openNote.session_id} patientId={p.id} startsAt={openNote.starts_at}
+                     onSaved={() => visitChanged({ text: 'Notes saved.' })} onCancel={() => setOpenNote(null)} />
+        )}
+      </Modal>
+
+      {paymentDialog && (
+        <PaymentDialog
+          patient={{ id: p.id, full_name: p.full_name }}
+          balance={paymentDialog === 'new' ? balance?.balance : undefined}
+          payment={paymentDialog === 'new' ? undefined : paymentDialog}
+          onClose={() => setPaymentDialog(null)}
+          onDone={visitChanged}
+        />
+      )}
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete this payment?"
+        body={deleting ? `${formatPeso(deleting.amount)} received ${formatDate(deleting.paid_on)}. The patient’s balance goes back up by this amount.` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        busy={deleteBusy}
+        onConfirm={confirmDeletePayment}
+        onCancel={() => setDeleting(null)}
+      />
     </section>
   )
 }

@@ -5,6 +5,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { SplashScreen } from './components/SplashScreen'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
+import { PaymentsPage } from './pages/PaymentsPage'
 import { Placeholder } from './pages/Placeholder'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { PatientFormPage } from './pages/patients/PatientFormPage'
@@ -37,11 +38,7 @@ const router = createHashRouter([
           { path: 'patients/:id/edit', element: <PatientFormPage /> },
           { path: 'patients/:id/plans/new', element: <PlanFormPage /> },
           { path: 'plans/:id', element: <PlanDetailPage /> },
-          {
-            path: 'payments',
-            element: <Placeholder title="Payments" step="the payments step"
-              description="Record payments, see balances per patient and monthly earnings." />,
-          },
+          { path: 'payments', element: <PaymentsPage /> },
           {
             path: 'settings',
             element: <Placeholder title="Settings" step="a later step"
