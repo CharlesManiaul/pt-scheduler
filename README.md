@@ -1,0 +1,41 @@
+# PT Scheduler
+
+A home-visit scheduler for a physical therapist: patients, plans of care, sessions,
+SOAP notes, pain tracking and payments. Personal-use app.
+
+**Stack:** Vite + React + TypeScript + Tailwind CSS · Supabase (PostgreSQL, Auth, Row Level Security) · GitHub Pages
+
+No patient data is ever stored in this repository. All data lives in Supabase and is
+readable only by the signed-in account (Row Level Security).
+
+## Project layout
+
+```
+.github/workflows/deploy.yml   build + publish to GitHub Pages on push to main
+supabase/01_schema.sql         database: tables, functions, views, security
+supabase/02_smoke_test.sql     self-checking test (rolls back, leaves no data)
+src/lib/supabase.ts            Supabase client (publishable key only)
+src/App.tsx                    app entry
+```
+
+## Run locally
+
+Requires Node.js 22 (see `.nvmrc`).
+
+```bash
+npm install
+cp .env.example .env.local   # then fill in your Supabase URL + publishable key
+npm run dev                  # http://localhost:5173
+```
+
+## Deploy
+
+1. Repository → **Settings → Secrets and variables → Actions → Variables** → add
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+2. Repository → **Settings → Pages** → Source: **GitHub Actions**.
+3. Push to `main`. The site appears at `https://<your-user>.github.io/<repo-name>/`.
+
+## Database
+
+Run `supabase/01_schema.sql` once in Supabase → SQL Editor, then
+`supabase/02_smoke_test.sql` to verify ("Success. No rows returned" = all checks passed).
