@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { toFriendlyError } from '../lib/errors'
 import { formatPeso, todayIso } from '../lib/format'
 import { createPayment, PAYMENT_METHODS, updatePayment, type Payment, type PaymentMethod } from '../lib/payments'
+import type { UnpaidVisit } from '../lib/unpaid'
 import { PatientPicker, type PickedPatient } from './PatientPicker'
+import { UnpaidVisits } from './UnpaidVisits'
 import { inputClass } from './styles'
 import { Button, ErrorBanner, Field, Modal } from './ui'
 
@@ -10,9 +12,10 @@ import { Button, ErrorBanner, Field, Modal } from './ui'
  * Record a new payment (optionally for a known patient, prefilled with their
  * balance) or edit an existing one.
  */
-export function PaymentDialog({ patient, balance, payment, onClose, onDone }: {
+export function PaymentDialog({ patient, balance, unpaid, payment, onClose, onDone }: {
   patient?: { id: string; full_name: string }
   balance?: number
+  unpaid?: UnpaidVisit[]
   payment?: Payment
   onClose: () => void
   onDone: (m: { text: string }) => void
@@ -62,6 +65,7 @@ export function PaymentDialog({ patient, balance, payment, onClose, onDone }: {
             <b>{patient.full_name}</b> · balance <b className={balance > 0 ? 'text-clay-600' : 'text-moss-600'}>{formatPeso(balance)}</b>
           </p>
         )}
+        {!editing && unpaid && unpaid.length > 0 && <UnpaidVisits visits={unpaid} />}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Amount (₱)" htmlFor="pay_amount" error={touched ? amountError : null}>

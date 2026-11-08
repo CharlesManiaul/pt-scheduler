@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { AddVisitDialog } from '../../components/AddVisitDialog'
 import { NotesForm } from '../../components/NotesForm'
 import { PaymentDialog } from '../../components/PaymentDialog'
+import { UnpaidVisits } from '../../components/UnpaidVisits'
 import { Icon } from '../../components/Icon'
 import { PlanChip, PlanProgress, SessionChip, SessionDialog } from '../../components/scheduling'
 import { buttonClass } from '../../components/styles'
@@ -15,6 +16,7 @@ import { dischargePatient, getPatient, getPatientBalance, reactivatePatient } fr
 import { listPatientNotes, type NoteSummary } from '../../lib/notes'
 import { deletePayment, listPaymentsForPatient, methodLabel, type PaymentWithPatient } from '../../lib/payments'
 import { listPlansForPatient } from '../../lib/plans'
+import { allocateUnpaid, listChargedVisits, type UnpaidVisit } from '../../lib/unpaid'
 import { listUpcomingForPatient } from '../../lib/sessions'
 import type { CarePlan, Patient, PatientBalance, Session } from '../../lib/types'
 
@@ -37,6 +39,7 @@ export function PatientDetailPage() {
   const [loadedAt, setLoadedAt] = useState(0)
   const [notes, setNotes] = useState<NoteSummary[]>([])
   const [payments, setPayments] = useState<PaymentWithPatient[]>([])
+  const [unpaid, setUnpaid] = useState<UnpaidVisit[]>([])
   const [openNote, setOpenNote] = useState<NoteSummary | null>(null)
   const [paymentDialog, setPaymentDialog] = useState<'new' | PaymentWithPatient | null>(null)
   const [deleting, setDeleting] = useState<PaymentWithPatient | null>(null)
@@ -48,8 +51,8 @@ export function PatientDetailPage() {
     if (!id) return
     let cancelled = false
     Promise.all([getPatient(id), getPatientBalance(id), listPlansForPatient(id), listUpcomingForPatient(id),
-                 listPatientNotes(id), listPaymentsForPatient(id, 5)])
-      .then(([p, b, pl, up, nt, pay]) => {
+                 listPatientNotes(id), listPaymentsForPatient(id, 5), listChargedVisits([id])])
+      .then(([p, b, pl, up, nt, pay, charged]) => {
         if (cancelled) return
         setPatient(p)
         setBalance(b)
@@ -57,6 +60,7 @@ export function PatientDetailPage() {
         setUpcoming(up)
         setNotes(nt)
         setPayments(pay)
+        setUnpaid(b.balance > 0 ? allocateUnpaid(charged, b.total_paid) : [])
         setLoadedAt(Date.now())
       })
       .catch((e) => !cancelled && setError(toFriendlyError(e)))
@@ -288,6 +292,7 @@ export function PatientDetailPage() {
                     {formatPeso(balance.balance)}
                   </span>
                 </div>
+                {unpaid.length > 0 && <div className="mt-3"><UnpaidVisits visits={unpaid} /></div>}
               </>
             )}
             {payments.length > 0 && (
@@ -362,6 +367,7 @@ export function PatientDetailPage() {
         <PaymentDialog
           patient={{ id: p.id, full_name: p.full_name }}
           balance={paymentDialog === 'new' ? balance?.balance : undefined}
+          unpaid={paymentDialog === 'new' ? unpaid : undefined}
           payment={paymentDialog === 'new' ? undefined : paymentDialog}
           onClose={() => setPaymentDialog(null)}
           onDone={visitChanged}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '../components/Icon'
 import { PaymentDialog } from '../components/PaymentDialog'
+import { UnpaidVisits } from '../components/UnpaidVisits'
 import { buttonClass } from '../components/styles'
 import { Button, ConfirmDialog, ErrorBanner, Notice, Spinner } from '../components/ui'
 import { toFriendlyError } from '../lib/errors'
@@ -10,6 +11,7 @@ import {
   chargedBetween, deletePayment, listOutstanding, listPaymentsBetween, methodLabel,
   type Outstanding, type PaymentWithPatient,
 } from '../lib/payments'
+import { unpaidByPatient, type UnpaidVisit } from '../lib/unpaid'
 
 /** 'YYYY-MM' ± n months */
 function shiftMonth(month: string, n: number): string {
@@ -24,7 +26,7 @@ export function PaymentsPage() {
   const thisMonth = todayIso().slice(0, 7)
   const [month, setMonth] = useState(thisMonth)
   const [reloadKey, setReloadKey] = useState(0)
-  const [data, setData] = useState<{ key: string; payments: PaymentWithPatient[]; charged: number; outstanding: Outstanding[] } | null>(null)
+  const [data, setData] = useState<{ key: string; payments: PaymentWithPatient[]; charged: number; outstanding: Outstanding[]; unpaid: Map<string, UnpaidVisit[]> } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [dialog, setDialog] = useState<null | { mode: 'new' } | { mode: 'patient'; o: Outstanding } | { mode: 'edit'; p: PaymentWithPatient }>(null)
@@ -40,7 +42,10 @@ export function PaymentsPage() {
       chargedBetween(manilaIso(from, '00:00'), manilaIso(to, '00:00')),
       listOutstanding(),
     ])
-      .then(([payments, charged, outstanding]) => { if (!cancelled) { setData({ key, payments, charged, outstanding }); setError(null) } })
+      .then(async ([payments, charged, outstanding]) => {
+        const unpaid = await unpaidByPatient(new Map(outstanding.map((o) => [o.patient_id, o.total_paid])))
+        if (!cancelled) { setData({ key, payments, charged, outstanding, unpaid }); setError(null) }
+      })
       .catch((e) => !cancelled && setError(toFriendlyError(e)))
     return () => { cancelled = true }
   }, [month, key])
@@ -116,13 +121,16 @@ export function PaymentsPage() {
             ) : (
               <ul className="mt-2 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
                 {outstanding.map((o) => (
-                  <li key={o.patient_id} className="flex items-center gap-3 px-4 py-3">
-                    <Link to={`/patients/${o.patient_id}`} className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold hover:text-teal-700">{o.full_name}</span>
-                      {o.status === 'discharged' && <span className="text-xs text-ink-faint">Discharged</span>}
-                    </Link>
-                    <span className="font-display text-lg font-semibold text-clay-600">{formatPeso(o.balance)}</span>
-                    <button onClick={() => setDialog({ mode: 'patient', o })} className={buttonClass('secondary', 'h-9 px-3')}>Record</button>
+                  <li key={o.patient_id} className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Link to={`/patients/${o.patient_id}`} className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold hover:text-teal-700">{o.full_name}</span>
+                        {o.status === 'discharged' && <span className="text-xs text-ink-faint">Discharged</span>}
+                      </Link>
+                      <span className="font-display text-lg font-semibold text-clay-600">{formatPeso(o.balance)}</span>
+                      <button onClick={() => setDialog({ mode: 'patient', o })} className={buttonClass('secondary', 'h-9 px-3')}>Record</button>
+                    </div>
+                    <div className="mt-2"><UnpaidVisits visits={data?.unpaid.get(o.patient_id) ?? []} max={6} compact /></div>
                   </li>
                 ))}
               </ul>
@@ -161,7 +169,7 @@ export function PaymentsPage() {
       {dialog?.mode === 'new' && <PaymentDialog onClose={() => setDialog(null)} onDone={done} />}
       {dialog?.mode === 'patient' && (
         <PaymentDialog patient={{ id: dialog.o.patient_id, full_name: dialog.o.full_name }} balance={dialog.o.balance}
-                       onClose={() => setDialog(null)} onDone={done} />
+                       unpaid={data?.unpaid.get(dialog.o.patient_id)} onClose={() => setDialog(null)} onDone={done} />
       )}
       {dialog?.mode === 'edit' && (
         <PaymentDialog patient={{ id: dialog.p.patient_id, full_name: dialog.p.patient_name }} payment={dialog.p}

@@ -68,18 +68,18 @@ export async function deletePayment(id: string): Promise<void> {
   if (error) throw error
 }
 
-export interface Outstanding { patient_id: string; full_name: string; status: string; balance: number }
+export interface Outstanding { patient_id: string; full_name: string; status: string; balance: number; total_paid: number }
 
 /** Patients who still owe money, largest balance first. */
 export async function listOutstanding(): Promise<Outstanding[]> {
   const { data, error } = await supabase
     .from('v_patient_balances')
-    .select('patient_id, full_name, status, balance')
+    .select('patient_id, full_name, status, balance, total_paid')
     .gt('balance', 0)
     .order('balance', { ascending: false })
     .limit(200)
   if (error) throw error
-  return (data ?? []).map((r) => ({ ...(r as Outstanding), balance: Number(r.balance) }))
+  return (data ?? []).map((r) => ({ ...(r as Outstanding), balance: Number(r.balance), total_paid: Number(r.total_paid) }))
 }
 
 /** Fees earned from visits in [from, to): completed visits + charged no-shows. */
