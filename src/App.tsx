@@ -6,7 +6,7 @@ import { SplashScreen } from './components/SplashScreen'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { PaymentsPage } from './pages/PaymentsPage'
-import { Placeholder } from './pages/Placeholder'
+import { SettingsPage } from './pages/SettingsPage'
 import { PatientDetailPage } from './pages/patients/PatientDetailPage'
 import { PatientFormPage } from './pages/patients/PatientFormPage'
 import { PatientsPage } from './pages/patients/PatientsPage'
@@ -39,11 +39,7 @@ const router = createHashRouter([
           { path: 'patients/:id/plans/new', element: <PlanFormPage /> },
           { path: 'plans/:id', element: <PlanDetailPage /> },
           { path: 'payments', element: <PaymentsPage /> },
-          {
-            path: 'settings',
-            element: <Placeholder title="Settings" step="a later step"
-              description="Default session length, travel buffer and your display name." />,
-          },
+          { path: 'settings', element: <SettingsPage /> },
         ],
       },
     ],

@@ -97,3 +97,12 @@ export async function getSettings(): Promise<Settings> {
   if (error) throw error
   return data as Settings
 }
+
+export async function updateSettings(
+  ownerId: string,
+  s: { therapist_name: string | null; default_session_minutes: number; default_buffer_minutes: number },
+): Promise<void> {
+  // explicit owner filter: Supabase rejects UPDATE statements without a WHERE clause
+  const { error } = await supabase.from('settings').update(s).eq('owner_id', ownerId)
+  if (error) throw error
+}

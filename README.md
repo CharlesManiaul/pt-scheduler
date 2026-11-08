@@ -37,5 +37,17 @@ npm run dev                  # http://localhost:5173
 
 ## Database
 
-Run `supabase/01_schema.sql` once in Supabase → SQL Editor, then
-`supabase/02_smoke_test.sql` to verify ("Success. No rows returned" = all checks passed).
+Run in Supabase → SQL Editor, in order:
+
+| File | When |
+|---|---|
+| `supabase/01_schema.sql` | once, on a new project |
+| `supabase/02_smoke_test.sql` | any time; "Success" = all checks passed (rolls back) |
+| `supabase/03_step7_discharge.sql` | once, after 01 (safe to re-run) |
+| `supabase/99_clear_all_data.sql` | only to wipe all data (cannot be undone) |
+
+## Backups
+
+Settings → **Download backup** exports everything as one JSON file. The free
+Supabase plan has no automatic backups, so download one regularly and store it
+privately (it contains patient health information).
